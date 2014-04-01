@@ -71,6 +71,8 @@ private:
 	QLineEdit *textY;
 	QLineEdit *textZ;
 	QLineEdit *textNumSlice;
+    QLineEdit *textSampleNumX;
+    QLineEdit *textSampleNumY;
     GLWidget *openGL;
 
 private slots:

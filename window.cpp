@@ -63,7 +63,9 @@ Window::Window()
 	textX = new QLineEdit(tr("0"));
 	textY = new QLineEdit(tr("0"));
 	textZ = new QLineEdit(tr("600"));
-	textNumSlice = new QLineEdit(tr("7"));
+    textNumSlice = new QLineEdit(tr("16"));
+    textSampleNumX = new QLineEdit(tr("64"));
+    textSampleNumY = new QLineEdit(tr("64"));
     radio0->setChecked(true);
     QPushButton *buttonExtrusion = new QPushButton(tr("Extrusion"));
     QPushButton *buttonRevolution = new QPushButton(tr("Revolution"));
@@ -80,6 +82,8 @@ Window::Window()
 	vbox->addWidget(textY);
 	vbox->addWidget(textZ);
 	vbox->addWidget(textNumSlice);
+    vbox->addWidget(textSampleNumX);
+    vbox->addWidget(textSampleNumY);
 
     vbox->addWidget(buttonExtrusion);
 	vbox->addWidget(buttonRevolution);
@@ -143,7 +147,7 @@ void Window::GenerateExtrusionSurface()
 
 void Window::GenerateRevolutionSurface()
 {
-	helper.GenerateRevolution(textNumSlice->text().toInt());
+    helper.GenerateRevolution(textNumSlice->text().toInt(), textSampleNumX->text().toInt(), textSampleNumY->text().toInt());
 }
 
 void Window::GenerateSweep()

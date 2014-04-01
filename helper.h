@@ -80,11 +80,12 @@ public:
     void FindAndDuplicate(QPoint p);
    // Mesh Extrusion(QVector<QPoint> curve, int ns, QVector3D v, bool close);
     void GenerateExtrusion(int ns, QVector3D v);
-	void GenerateRevolution(int ns);
+//	void GenerateRevolution(int ns);
 	void ClearPoints();
 	void RecordWire();
-	void GenerateSweep();
+    void GenerateSweep();
 
+    void GenerateRevolution(int ns, int nu, int nv);
 private:
     QBrush background;
     QBrush circleBrush;

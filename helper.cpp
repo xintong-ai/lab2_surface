@@ -407,8 +407,9 @@ inline Mesh Revolution(QVector<QPointF> curve, int ns, bool close)
 }
 
     
-inline void Grid2Mesh(Mesh &mMesh, QVector<QVector<QVector3D>> grid)
+inline Mesh Grid2Mesh(QVector<QVector<QVector3D> > grid)
 {
+    Mesh mMesh;
 	for(int i = 0; i < (grid.size() - 1); i ++)
 		for(int j = 0; j < (grid.at(0).size() - 1); j++)
 		{
@@ -419,6 +420,7 @@ inline void Grid2Mesh(Mesh &mMesh, QVector<QVector<QVector3D>> grid)
 						   grid[i+1][j].x(),	grid[i+1][j].y(),	grid[i+1][j].z(),
 						   grid[i+1][j+1].x(),	grid[i+1][j+1].y(),	grid[i+1][j+1].z() );
 		}
+    return mMesh;
 }
 
 QVector3D CasteljauSurf(QVector<QVector<QVector3D> > cp, float w, float u)
@@ -451,84 +453,48 @@ QVector3D CasteljauSurf(QVector<QVector<QVector3D> > cp, float w, float u)
     return p0[0];
 }
 
-inline Mesh ControlGrid2BeizerGrid(QVector<QVector<QVector3D>> cp, bool closeX, bool closeY)
+inline QVector<QVector<QVector3D> > ControlGrid2BeizerGrid(QVector<QVector<QVector3D> > cp, int ni, int nj)
 {
-	Mesh mMesh;
+    QVector<QVector<QVector3D> > grid;
 	int m = cp.size() - 1;
 	int n = cp.at(0).size() - 1;
-	int nu = 10;
-	int nw = 10;
+    float stepi = 1.0 / ni;
+    float stepj = 1.0 / nj;
 
-	//for(int i = 0; i < (dim1 - 3); i++)
-	//{
-	//	for(int j = 0; j < (dim2 - 3); j++)
-	//	{
-	//		QVector<QVector<QVector3D>> newGridPoints;
-	//		QVector3D p[4][4];
-	//		for(int ix = 0; ix < 4; ix++)
-	//			for(int iy = 0; iy < 4; iy++)
-	//				p[ix][iy] = cp[ix + i][iy + j];
-	//		
-	//		for(int iu = 0; iu <= nu; iu++)
-	//		{
-	//			QVector<QVector3D> oneline;
-	//			for(int iw = 0; iw <= nw; iw++)
-	//			{
-	//				float u = iu / nu;
-	//				float w = iw / nw;
-	//				float uu[4] , ww[4];
-	//				uu[0] = pow((1 - u), 3);
-	//				uu[1] = 3 * u * pow((1 - u), 2);
-	//				uu[2] = 3 * pow(u, 2) * (1 - u);
-	//				uu[3] = pow(u, 3);
+    for(int i = 0; i <= ni; i++)   {
+        QVector<QVector3D>  line;
+        for(int j = 0; j <= nj; j++)    {
+            line.push_back(CasteljauSurf(cp, i * stepi, j * stepj));
+        }
+        grid.push_back(line);
+    }
 
-	//				ww[0] = pow((1 - w), 3);
-	//				ww[1] = 3 * u * pow((1 - w), 2);
-	//				ww[2] = 3 * pow(w, 2) * (1 - w);
-	//				ww[3] = pow(w, 3);
-
-	//				oneline.push_back(
-	//					(uu[0] * p[0][0] + uu[1] * p[1][0] + uu[2] * p[2][0] + uu[3] * p[3][0] ) * ww[0]
-	//				+	(uu[0] * p[0][1] + uu[1] * p[1][1] + uu[2] * p[2][1] + uu[3] * p[3][1] ) * ww[1]
-	//				+	(uu[0] * p[0][2] + uu[1] * p[1][2] + uu[2] * p[2][2] + uu[3] * p[3][2] ) * ww[2]
-	//				+	(uu[0] * p[0][3] + uu[1] * p[1][3] + uu[2] * p[2][3] + uu[3] * p[3][3] ) * ww[3]
-	//					);
-	//			}
-	//			newGridPoints.push_back(oneline);
-	//		}
-	//		Grid2Mesh(mMesh, newGridPoints);
-	//	}
-	//}
-	return mMesh;
+    return grid;
 }
 
-inline Mesh RevolutionBezier(QVector<QPointF> curve, int ns, bool close)
+inline Mesh RevolutionBezier(QVector<QPointF> curve, int ns, int nu, int nv)
 {
-    QVector<QVector3D> c0, c1, cc;
-	QVector<QVector<QVector3D>> cp;
+    QVector<QVector3D> c1, cc;
+    QVector<QVector<QVector3D> > cp;
     for(int i = 0; i < curve.size(); i++) {
-        c0.push_back(QVector3D(curve[i].x(), curve[i].y(), 0));
-		cp.push_back(c0);
+        cc.push_back(QVector3D(curve[i].x(), curve[i].y(), 0));
     }
-	cc = c0;
 	float aStep = 2 * M_PI / ns;
-    for(int i = 1; i <= ns; i++)   {
-        c1.clear();
+    for(int i = 0; i <= ns; i++)   {
 		float angle = (i % ns) * aStep;
         for(int j = 0; j < curve.size(); j++)
-            c1.push_back(QVector3D(cc[j].x(), cc[j].y() * cos(angle), cc[j].y() * sin(angle)));
-        //for(int j = 0; j < (c0.size() - 1); j++) {
-        //    mMesh.AddFacet(c0[j].x(), c0[j].y(), c0[j].z(),
-        //                   c0[j + 1].x(), c0[j + 1].y(), c0[j + 1].z(),
-        //                   c1[j].x(), c1[j].y(), c1[j].z());
-        //    mMesh.AddFacet(c0[j + 1].x(), c0[j + 1].y(), c0[j + 1].z(),
-        //                   c1[j + 1].x(), c1[j + 1].y(), c1[j + 1].z(),
-        //                   c1[j].x(), c1[j].y(), c1[j].z());
-        //}
+        {
+            QVector3D v;
+            if(i == (ns - 1))
+                v = 2 * cp[0][j] - cp[1][j];
+            else
+                v = QVector3D(cc[j].x(), cc[j].y() * cos(angle), cc[j].y() * sin(angle));
+            c1.push_back(v);
+        }
 		cp.push_back(c1);
-        c0 = c1;
+        c1.clear();
     }
-	return Grid2BeizerMesh(cp);
+    return Grid2Mesh(ControlGrid2BeizerGrid(cp, nu, nv));
 }
 
 inline Mesh Sweep(QVector<QPointF> generator, QVector<QPointF> trajectory)
@@ -560,12 +526,13 @@ inline Mesh Sweep(QVector<QPointF> generator, QVector<QPointF> trajectory)
     return mMesh;
 }
 	
-void Helper::GenerateRevolution(int ns)
+void Helper::GenerateRevolution(int ns, int nu, int nv)
 {
     QVector<QPointF> curveF = GetCurve();
 	Mesh mMesh;
     bool closed = (_splineType == 3);
-    mMesh = Revolution(curveF, ns, closed);
+    //mMesh = Revolution(curveF, ns, closed);
+    mMesh = RevolutionBezier(curveF, ns, nu, nv);
     mMesh.WritePLY("data/revolution.ply");
 }
 
