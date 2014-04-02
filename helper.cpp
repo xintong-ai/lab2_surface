@@ -41,6 +41,11 @@
 #include <QtGui>
 #include "helper.h"
 
+struct quad
+{
+	QVector3D v[4];
+};
+
 //! [0]
 Helper::Helper()
 {
@@ -413,14 +418,35 @@ inline Mesh Grid2Mesh(QVector<QVector<QVector3D> > grid)
 	for(int i = 0; i < (grid.size() - 1); i ++)
 		for(int j = 0; j < (grid.at(0).size() - 1); j++)
 		{
-            mMesh.AddFacet(grid[i][j].x(),		grid[i][j].y(),		grid[i][j].z(),
-                           grid[i+1][j].x(),	grid[i+1][j].y(),	grid[i+1][j].z(),
-                           grid[i][j+1].x(),	grid[i][j+1].y(),	grid[i][j+1].z() );
-            mMesh.AddFacet(grid[i][j+1].x(),	grid[i][j+1].y(),	grid[i][j+1].z(),
-						   grid[i+1][j].x(),	grid[i+1][j].y(),	grid[i+1][j].z(),
-						   grid[i+1][j+1].x(),	grid[i+1][j+1].y(),	grid[i+1][j+1].z() );
+			vector<GeomVert> facet;
+			facet.push_back(GeomVert(grid[i][j].x(),	grid[i][j].y(),		grid[i][j].z()));
+			facet.push_back(GeomVert(grid[i+1][j].x(),	grid[i+1][j].y(),	grid[i+1][j].z()));
+			facet.push_back(GeomVert(grid[i+1][j+1].x(),grid[i+1][j+1].y(),	grid[i+1][j+1].z()));
+			facet.push_back(GeomVert(grid[i][j+1].x(),	grid[i][j+1].y(),	grid[i][j+1].z()));
+			mMesh.AddFacet(facet);
 		}
     return mMesh;
+}
+
+inline void Grid2Mesh(Mesh &mMesh, QVector<QVector<QVector3D> > grid)
+{
+    
+	for(int i = 0; i < (grid.size() - 1); i ++)
+		for(int j = 0; j < (grid.at(0).size() - 1); j++)
+		{
+         //   mMesh.AddFacet(grid[i][j].x(),		grid[i][j].y(),		grid[i][j].z(),
+         //                  grid[i+1][j].x(),	grid[i+1][j].y(),	grid[i+1][j].z(),
+         //                  grid[i][j+1].x(),	grid[i][j+1].y(),	grid[i][j+1].z() );
+         //   mMesh.AddFacet(grid[i][j+1].x(),	grid[i][j+1].y(),	grid[i][j+1].z(),
+						   //grid[i+1][j].x(),	grid[i+1][j].y(),	grid[i+1][j].z(),
+						   //grid[i+1][j+1].x(),	grid[i+1][j+1].y(),	grid[i+1][j+1].z() );
+			vector<GeomVert> facet;
+			facet.push_back(GeomVert(grid[i][j].x(),	grid[i][j].y(),		grid[i][j].z()));
+			facet.push_back(GeomVert(grid[i+1][j].x(),	grid[i+1][j].y(),	grid[i+1][j].z()));
+			facet.push_back(GeomVert(grid[i+1][j+1].x(),grid[i+1][j+1].y(),	grid[i+1][j+1].z()));
+			facet.push_back(GeomVert(grid[i][j+1].x(),	grid[i][j+1].y(),	grid[i][j+1].z()));
+			mMesh.AddFacet(facet);
+		}
 }
 
 QVector3D CasteljauSurf(QVector<QVector<QVector3D> > cp, float w, float u)
@@ -472,6 +498,61 @@ inline QVector<QVector<QVector3D> > ControlGrid2BeizerGrid(QVector<QVector<QVect
     return grid;
 }
 
+inline QVector<QVector<QVector3D> > Patch2Grid(QVector<QVector3D> patch, int nx, int ny)
+{
+	//QVector<quad> quads;
+	float stepx = 1.0 / nx;
+	float stepy = 1.0 / ny;
+	QVector<QVector<QVector3D> > grid;
+	for(int i = 0; i <= nx; i++)
+	{
+		QVector<QVector3D> line;
+		float u = stepx * i;
+		for(int j = 0; j <= ny; j++)
+		{
+			float w = stepy * j;
+			QVector4D uu(u*u*u, u*u, u, 1);
+			QVector4D ww(w*w*w, w*w, w, 1);
+			QMatrix4x4 M(	-1.0/6 ,	1.0/2,	-1.0/2,	1.0/6,
+							1.0/2,		-1,		1.0/2,	0,
+							-1.0/2,		0,		1.0/2,	0,
+							1.0/6,		2.0/3,	1.0/6,	0);
+			QVector4D left = uu * M;
+			QVector4D right = M.transposed() * ww;
+			QVector<QVector3D> tmp;
+			tmp.push_back(left.x() * patch[0] + left.y() * patch[4] + left.z() * patch[8] + left.w() * patch[12]);
+			tmp.push_back(left.x() * patch[1] + left.y() * patch[5] + left.z() * patch[9] + left.w() * patch[13]);
+			tmp.push_back(left.x() * patch[2] + left.y() * patch[6] + left.z() * patch[10] + left.w() * patch[14]);
+			tmp.push_back(left.x() * patch[3] + left.y() * patch[7] + left.z() * patch[11] + left.w() * patch[15]);
+
+			line.push_back(tmp[0] * right.x() + tmp[1] * right.y() + tmp[2] * right.z() + tmp[3] * right.w());
+		}
+		grid.push_back(line);
+	}
+	return grid;
+}
+
+inline Mesh ControlGrid2CubicBSplineMesh(QVector<QVector<QVector3D> > cp, int ni, int nj)
+{
+	int nx = cp.size();
+	int ny = cp.at(0).size();
+	Mesh mMesh; 
+	bool close_x = (cp.front().front() == cp.back().front());
+	bool close_y = (cp.front().front() == cp.front().back());
+	int nx_add = close_x? 3:0;
+	int ny_add = close_y? 3:0;
+	for(int i = 0; i < (nx + nx_add - 3); i++)
+		for(int j = 0; j < (ny + ny_add - 3); j++)
+		{
+			QVector<QVector3D> patch;
+			for(int k = 0; k < 4; k++)
+				for(int l = 0; l < 4; l++)
+					patch.push_back(cp[(i + k) % nx][(j + l) % ny]);
+			Grid2Mesh(mMesh, Patch2Grid(patch, ni, nj));
+		}
+	return mMesh;
+}
+
 inline Mesh RevolutionBezier(QVector<QPointF> curve, int ns, int nu, int nv)
 {
     QVector<QVector3D> c1, cc;
@@ -494,7 +575,8 @@ inline Mesh RevolutionBezier(QVector<QPointF> curve, int ns, int nu, int nv)
 		cp.push_back(c1);
         c1.clear();
     }
-    return Grid2Mesh(ControlGrid2BeizerGrid(cp, nu, nv));
+    //return Grid2Mesh(ControlGrid2BeizerGrid(cp, nu, nv));
+    return ControlGrid2CubicBSplineMesh(cp, nu, nv);
 }
 
 inline Mesh Sweep(QVector<QPointF> generator, QVector<QPointF> trajectory)
