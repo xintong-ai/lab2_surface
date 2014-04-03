@@ -72,6 +72,10 @@ Window::Window()
     QPushButton *buttonClearPoints = new QPushButton(tr("Clear Points"));
     QPushButton *buttonRecordWire = new QPushButton(tr("Record Generator"));
     QPushButton *buttonSweep = new QPushButton(tr("Sweep"));
+    QPushButton *buttonLoadMesh = new QPushButton(tr("Load Mesh"));
+    QPushButton *buttonDooSabin = new QPushButton(tr("Doo Sabin"));
+	QPushButton *buttonCatmullClark = new QPushButton(tr("Catmull-Clark"));
+	QPushButton *buttonLoop = new QPushButton(tr("Loop"));
     QVBoxLayout *vbox = new QVBoxLayout;
     vbox->addWidget(radio0);
     vbox->addWidget(radio1);
@@ -90,6 +94,11 @@ Window::Window()
 	vbox->addWidget(buttonClearPoints);
 	vbox->addWidget(buttonRecordWire);
 	vbox->addWidget(buttonSweep);
+    vbox->addWidget(buttonLoadMesh);
+    vbox->addWidget(buttonDooSabin);
+    vbox->addWidget(buttonCatmullClark);
+    vbox->addWidget(buttonLoop);
+
     vbox->addStretch(1);
     groupBox->setLayout(vbox);
 
@@ -116,6 +125,10 @@ Window::Window()
     connect(buttonClearPoints, SIGNAL(clicked()), this, SLOT(ClearPoints()));
     connect(buttonRecordWire, SIGNAL(clicked()), this, SLOT(RecordWire()));
     connect(buttonSweep, SIGNAL(clicked()), this, SLOT(GenerateSweep()));
+    connect(buttonLoadMesh, SIGNAL(clicked()), this, SLOT(LoadMesh()));
+    connect(buttonDooSabin, SIGNAL(clicked()), this, SLOT(DooSabin()));
+    connect(buttonCatmullClark, SIGNAL(clicked()), this, SLOT(CatmullClark()));
+    connect(buttonLoop, SIGNAL(clicked()), this, SLOT(Loop()));
  //   connect(timer, SIGNAL(timeout()), openGL, SLOT(animate()));
 
 
@@ -153,6 +166,26 @@ void Window::GenerateRevolutionSurface()
 void Window::GenerateSweep()
 {
 	helper.GenerateSweep();
+}
+
+void Window::LoadMesh()
+{
+    helper.LoadMesh();
+}
+
+void Window::DooSabin()
+{
+	helper.GenerateDooSabin();
+}
+
+void Window::CatmullClark()
+{
+	helper.GenerateCatmullClark();
+}
+
+void Window::Loop()
+{
+	helper.GenerateLoop();
 }
 
 void Window::ClearPoints()

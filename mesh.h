@@ -31,13 +31,33 @@ public:
 	bool operator == (GeomVert &A)               { 
 		return ( (mCo[0] == A.GetCo(0)) && (mCo[1] == A.GetCo(1)) && (mCo[2] == A.GetCo(2)) );		
 	}
- 
+
+
+ datatype	mCo[3];
 private:
-	datatype	mCo[3];
+
 };
 // ------------------------------------------------------------
 
+inline void operator*=(GeomVert &a, float s)
+{
+    a.mCo[0] *= s; a.mCo[1] *= s; a.mCo[2] *= s;
+}
 
+inline GeomVert operator*(GeomVert a, float s)
+{
+    return GeomVert(a.mCo[0] * s, a.mCo[1] * s, a.mCo[2] * s);
+}
+
+inline GeomVert operator+(GeomVert a, GeomVert b)
+{
+    return GeomVert(a.mCo[0] + b.mCo[0], a.mCo[1] + b.mCo[1], a.mCo[2] + b.mCo[2]);
+}
+
+inline void operator+=(GeomVert &a, GeomVert b)
+{
+    a.mCo[0] += b.mCo[0]; a.mCo[1] += b.mCo[1]; a.mCo[2] += b.mCo[2];
+}
 
 
 

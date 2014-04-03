@@ -7,8 +7,11 @@
 #include <string>
 #include <stdlib.h>
 #include <iostream>
+#include <sstream> 
 
 using namespace std;
+
+
 
 // ------------------------------------------------------------
 // AddFacet:  Adds a triangle to the mesh.
@@ -189,64 +192,80 @@ void Mesh::WritePLY(char* filename)
     }
 }
 
-//void Mesh::ReadOFF(char* filename)
-//{
-//	ifstream in;
-//	in.open(filename);
-//	string readLine;
-//	// Check if file is in OFF format
-//	getline(in,readLine);
-//	if (readLine != "OFF")
+void Mesh::ReadOFF(char* filename)
+{
+	ifstream in;
+	in.open(filename);
+	string readLine;
+	// Check if file is in OFF format
+	getline(in,readLine);
+//    if (readLine != "OFF")
 //	{
-//	cout << "The file to read is not in OFF format." << endl;
-//	return;
+//		cout << "The file to read is not in OFF format." << endl;
+//        //return;
 //	}
-//	int nv, nf;
-//	int delimiterPos_1, delimiterPos_2, delimiterPos_3, delimiterPos_4;
-//	// Read values for Nv and Nf
-//	getline(in,readLine);
-//	delimiterPos_1 = readLine.find(" ", 0);
-//	nv = atoi(readLine.substr(0,delimiterPos_1+1).c_str());
-//	delimiterPos_2 = readLine.find(" ", delimiterPos_1);
-//	nf = atoi(readLine.substr(delimiterPos_1,delimiterPos_2 +1).c_str());
-//
-//	for (int n=0; n<nv; n++)
-//	{
-//		getline(in,readLine);
-//		delimiterPos_1 = readLine.find(" ", 0);
-//		vertices[n].x = atof(readLine.substr(0,delimiterPos_1).c_str());
-//		delimiterPos_2 = readLine.find(" ", delimiterPos_1+1);
-//		vertices[n].y =
-//		atof(readLine.substr(delimiterPos_1,delimiterPos_2 ).c_str());
-//		delimiterPos_3 = readLine.find(" ", delimiterPos_2+1);
-//		vertices[n].z =
-//		atof(readLine.substr(delimiterPos_2,delimiterPos_3 ).c_str());
-//
-//		cout << vertices[n].x << "\t" << vertices[n].y << "\t" <<
-//		vertices[n].z << "\t" << endl;
-//	}
-//
-//	// Read the facades
-////	facades = new facade[nf];
-//
-//	for (int n=0; n<nf; n++)
-//	{
-//		getline(in,readLine);
-//		delimiterPos_1 = readLine.find(" ", 0);
-//		delimiterPos_2 = readLine.find(" ", delimiterPos_1+1);
-//		facades[n].v1 =
-//		atoi(readLine.substr(delimiterPos_1,delimiterPos_2 ).c_str());
-//		delimiterPos_3 = readLine.find(" ", delimiterPos_2+1);
-//		facades[n].v2 =
-//		atoi(readLine.substr(delimiterPos_2,delimiterPos_3 ).c_str());
-//		delimiterPos_4 = readLine.find(" ", delimiterPos_3+1);
-//		facades[n].v3 =
-//		atoi(readLine.substr(delimiterPos_3,delimiterPos_4 ).c_str());
-//
-//		cout << facades[n].v1 << "\t" << facades[n].v2 << "\t" <<
-//		facades[n].v3 << "\t" << endl;
-//	}
-//}
+	int nv, nf;
+	int delimiterPos_1, delimiterPos_2, delimiterPos_3, delimiterPos_4;
+	// Read values for Nv and Nf
+	getline(in,readLine);
+	delimiterPos_1 = readLine.find(" ", 0);
+	nv = atoi(readLine.substr(0,delimiterPos_1+1).c_str());
+	delimiterPos_2 = readLine.find(" ", delimiterPos_1);
+	nf = atoi(readLine.substr(delimiterPos_1,delimiterPos_2 +1).c_str());
+
+
+	vector<GeomVert> vertices;
+	for (int n=0; n<nv; n++)
+	{
+		getline(in,readLine);
+		delimiterPos_1 = readLine.find(" ", 0);
+		float x,y,z;
+		x = atof(readLine.substr(0,delimiterPos_1).c_str());
+		delimiterPos_2 = readLine.find(" ", delimiterPos_1+1);
+		y =
+		atof(readLine.substr(delimiterPos_1,delimiterPos_2 ).c_str());
+		delimiterPos_3 = readLine.find(" ", delimiterPos_2+1);
+		z =
+		atof(readLine.substr(delimiterPos_2,delimiterPos_3 ).c_str());
+		GeomVert v(x, y, z);
+
+		vertices.push_back(v);
+		//cout << vertices[n].x << "\t" << vertices[n].y << "\t" <<
+		//vertices[n].z << "\t" << endl;
+	}
+
+	// Read the facades
+//	facades = new facade[nf];
+			
+	for (int n=0; n<nf; n++)
+	{
+		getline(in,readLine);
+		/*delimiterPos_1 = readLine.find(" ", 0);
+		delimiterPos_2 = readLine.find(" ", delimiterPos_1+1);
+		facades[n].v1 =
+		atoi(readLine.substr(delimiterPos_1,delimiterPos_2 ).c_str());
+		delimiterPos_3 = readLine.find(" ", delimiterPos_2+1);
+		facades[n].v2 =
+		atoi(readLine.substr(delimiterPos_2,delimiterPos_3 ).c_str());
+		delimiterPos_4 = readLine.find(" ", delimiterPos_3+1);
+		facades[n].v3 =
+		atoi(readLine.substr(delimiterPos_3,delimiterPos_4 ).c_str());
+		*/
+		stringstream ss(readLine);
+		int num;
+		ss >>num;
+		//vector<int> idx;
+		vector<GeomVert> facet;
+		for(int j = 0; j < num; j++)
+		{
+			int id;
+			ss >>id;
+			facet.push_back(vertices[id]);
+			//idx.push_back(id); 
+		}
+		this->AddFacet(facet);
+	}
+}
 
 
 void Mesh::WriteASCII(char* filename)

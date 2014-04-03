@@ -607,6 +607,189 @@ inline Mesh Sweep(QVector<QPointF> generator, QVector<QPointF> trajectory)
     }
     return mMesh;
 }
+
+inline GeomVert GetFaceVertex(Mesh mMesh, GeomVert v, TopoFacet f)
+{
+	int j0;
+	int nv = f.GetNumberVertices();
+	GeomVert x(0, 0, 0);
+	for(int j = 0; j < nv; j++)    {
+		int vid = f.GetVertexInd(j);
+		GeomVert jv = mMesh.GetGeomVertex(vid);
+		if(v == jv)	
+			j0 = j;
+		x += jv;
+	}
+	x *= (1.0 / nv);
+	GeomVert v1 = mMesh.GetGeomVertex(f.GetVertexInd((j0 + nv - 1) % nv));
+	GeomVert v2 = mMesh.GetGeomVertex(f.GetVertexInd((j0 + nv + 1) % nv));
+
+	GeomVert ev1 = (v + v1) * 0.5;
+	GeomVert ev2 = (v + v2) * 0.5;
+
+
+	return (x + ev1 + ev2 + v) * 0.25;
+
+}
+
+inline Mesh DooSabin(Mesh inMesh)
+{
+    Mesh outMesh;
+
+    /////////////////for face face
+    for(int i = 0; i < inMesh.GetNumberFacets(); i++) {
+		vector<GeomVert> facet;
+        TopoFacet f = inMesh.GetFacet(i);
+		for(int j = 0; j < f.GetNumberVertices(); j++)  {
+			GeomVert v = inMesh.GetGeomVertex( f.GetVertexInd(j));
+            facet.push_back(GetFaceVertex(inMesh, v, f));
+        }
+        outMesh.AddFacet(facet);
+    }
+
+    for(int i = 0 ; i < inMesh.GetNumberEdges(); i++){
+        ////////////////for edge face
+		vector<GeomVert> facet;
+        TopoEdge e = inMesh.GetEdge(i);
+		TopoFacet f0 = inMesh.GetFacet(e.GetIncFacet(0));
+        TopoFacet f1 = inMesh.GetFacet(e.GetIncFacet(1));
+		GeomVert v0 = inMesh.GetGeomVertex(e.GetVertex(0));
+        GeomVert v1 = inMesh.GetGeomVertex(e.GetVertex(1));
+		facet.push_back(GetFaceVertex(inMesh, v0, f1));        
+		facet.push_back(GetFaceVertex(inMesh, v1, f1));        
+		facet.push_back(GetFaceVertex(inMesh, v1, f0));        
+		facet.push_back(GetFaceVertex(inMesh, v0, f0));        
+        outMesh.AddFacet(facet);
+    }
+
+	//vertex face
+	for(int i = 0; i < inMesh.GetNumberVertices(); i++)	{
+		vector<GeomVert> facet;
+		TopoVert v = inMesh.GetVertex(i);
+		GeomVert gv = inMesh.GetGeomVertex(i);
+		for(int j = v.GetNumberIncFacets() - 1; j >= 0; j--)	{
+			TopoFacet f = inMesh.GetFacet(v.GetIncFacet(j));
+			facet.push_back(GetFaceVertex(inMesh, gv, f));
+		}
+        outMesh.AddFacet(facet);
+	}
+
+	return outMesh;
+}
+
+inline GeomVert FacePoint(TopoFacet facet, Mesh mMesh)
+{
+	GeomVert vf(0, 0, 0);
+	int nv = facet.GetNumberVertices();
+	for(int i = 0; i < nv; i++)	{
+		vf += mMesh.GetGeomVertex(facet.GetVertexInd(i));
+	}
+	vf *= (1.0 / nv);
+	return vf;
+}
+
+inline Mesh CatmullClark(Mesh inMesh)
+{
+    Mesh outMesh;
+
+    /////////////////for face face
+    for(int i = 0; i < inMesh.GetNumberFacets(); i++) {
+		TopoFacet f = inMesh.GetFacet(i);
+		GeomVert vf = FacePoint(f, inMesh);
+		vector<GeomVert> ve;
+		for(int j = 0; j < f.GetNumberEdges(); j++)	{
+			TopoEdge e = inMesh.GetEdge(f.GetIncEdge(j));
+			GeomVert v = inMesh.GetGeomVertex(e.GetVertex(0));
+			GeomVert w = inMesh.GetGeomVertex(e.GetVertex(1));
+			TopoFacet f1 = inMesh.GetFacet(e.GetIncFacet(0));
+			TopoFacet f2 = inMesh.GetFacet(e.GetIncFacet(1));
+			GeomVert vf1 = FacePoint(f1, inMesh);
+			GeomVert vf2 = FacePoint(f2, inMesh);
+			ve.push_back((v + w + vf1 + vf2) * 0.25);
+		}
+		vector<GeomVert> vv;
+		for(int j = 0; j <f.GetNumberVertices(); j++)	{
+			TopoVert v = inMesh.GetVertex(f.GetVertexInd(j));
+			GeomVert vg = inMesh.GetGeomVertex(f.GetVertexInd(j));
+			GeomVert Q(0, 0, 0);
+			for(int k = 0; k < v.GetNumberIncFacets(); k++)	{
+				TopoFacet fa = inMesh.GetFacet(v.GetIncFacet(k));
+				GeomVert vfa = FacePoint(fa, inMesh);
+				Q += vfa;
+			}
+			Q *= (1.0/v.GetNumberIncFacets());
+
+			GeomVert R(0, 0, 0);
+			int n = v.GetNumberIncEdges();
+			for(int k = 0; k < v.GetNumberIncEdges(); k++)	{
+				TopoEdge e = inMesh.GetEdge(v.GetIncEdge(k));
+				GeomVert v1 = inMesh.GetGeomVertex(e.GetVertex(0));
+				GeomVert v2 = inMesh.GetGeomVertex(e.GetVertex(1));
+				R += ((v1 + v2) * 0.5);
+			}
+			R *= (1.0 / v.GetNumberIncEdges());
+
+			vv.push_back((Q + R * 2 + vg * (n - 3) ) * (1.0 / n));
+		}
+		int ne = f.GetNumberEdges();
+		for(int j = 0; j < f.GetNumberEdges(); j++)	{
+			vector<GeomVert> facet;
+			facet.push_back(ve[j]);
+			facet.push_back(vv[j]);
+			facet.push_back(ve[(j + 1) % ne]);
+			facet.push_back(vf);
+			outMesh.AddFacet(facet);
+		}
+    }
+
+	return outMesh;
+}
+
+
+
+inline Mesh Loop(Mesh inMesh)
+{
+    Mesh outMesh;
+	Mesh triMesh;
+	for(int i = 0; i < inMesh.GetNumberFacets(); i++)	{
+		TopoFacet f = inMesh.GetFacet(i);
+		GeomVert vf = FacePoint(f, inMesh);
+		int nv = f.GetNumberVertices();
+		for(int j = 0; j < nv; j++)	{
+			vector<GeomVert> facet;
+			facet.push_back(inMesh.GetGeomVertex(f.GetVertexInd(j)));
+			facet.push_back(inMesh.GetGeomVertex(f.GetVertexInd((j + 1 + nv) % nv)));
+			facet.push_back(vf);
+			triMesh.AddFacet(facet);
+		}
+	}
+
+	for(int i = 0; i < triMesh.GetNumberFacets(); i++)	{
+		TopoFacet f = inMesh.GetFacet(i);
+
+		for(int j = 0; j < f.GetNumberEdges(); j++)	{
+			TopoEdge e = inMesh.GetEdge(f.GetIncEdge(j));
+		}
+	}
+
+	return outMesh;
+}
+
+
+void Helper::GenerateDooSabin()
+{
+	DooSabin(_inputMesh).WritePLY("data/DooSabin.ply");;
+}
+
+void Helper::GenerateCatmullClark()
+{
+	CatmullClark(_inputMesh).WritePLY("data/CatmullClark.ply");;
+}
+
+void Helper::GenerateLoop()
+{
+	Loop(_inputMesh).WritePLY("data/Loop.ply");;
+}
 	
 void Helper::GenerateRevolution(int ns, int nu, int nv)
 {
@@ -624,6 +807,11 @@ void Helper::GenerateSweep()
 	Mesh mMesh;
     mMesh = Sweep(_generator, trajectory);
     mMesh.WritePLY("data/sweep.ply");
+}
+
+void Helper::LoadMesh()
+{
+    _inputMesh.ReadOFF("data/octa.off");//"data/dodec.off");
 }
 
 void Helper::ClearPoints()

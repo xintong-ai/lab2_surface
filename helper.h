@@ -86,6 +86,11 @@ public:
     void GenerateSweep();
 
     void GenerateRevolution(int ns, int nu, int nv);
+    void LoadMesh();
+
+	void GenerateDooSabin();
+	void GenerateCatmullClark();
+	void GenerateLoop();
 private:
     QBrush background;
     QBrush circleBrush;
@@ -93,6 +98,7 @@ private:
     QPen circlePen;
     QPen textPen;
     int _splineType;
+    Mesh _inputMesh;
 
     QVector<QPoint> ctrlPts;
 	QVector<QPointF> GetCurve();

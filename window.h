@@ -60,6 +60,7 @@ class Window : public QWidget
 public:
     Window();
 
+
 private:
     Helper helper;
     QRadioButton *radio0;
@@ -82,6 +83,10 @@ private slots:
 	void GenerateSweep();
 	void ClearPoints();
 	void RecordWire();
+    void LoadMesh();
+    void DooSabin();
+    void CatmullClark();
+    void Loop();
 };
 //! [0]
 
