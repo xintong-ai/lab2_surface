@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'window.h'
 **
-** Created: Tue Apr 1 18:04:27 2014
+** Created: Wed Apr 2 17:44:16 2014
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.1)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,7 +23,7 @@ static const uint qt_meta_data_Window[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       6,   14, // methods
+       7,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -37,6 +37,7 @@ static const uint qt_meta_data_Window[] = {
       84,    7,    7,    7, 0x08,
      100,    7,    7,    7, 0x08,
      114,    7,    7,    7, 0x08,
+     127,    7,    7,    7, 0x08,
 
        0        // eod
 };
@@ -45,7 +46,7 @@ static const char qt_meta_stringdata_Window[] = {
     "Window\0\0SplineTypeSelected()\0"
     "GenerateExtrusionSurface()\0"
     "GenerateRevolutionSurface()\0GenerateSweep()\0"
-    "ClearPoints()\0RecordWire()\0"
+    "ClearPoints()\0RecordWire()\0LoadMesh()\0"
 };
 
 void Window::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
@@ -60,6 +61,7 @@ void Window::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void
         case 3: _t->GenerateSweep(); break;
         case 4: _t->ClearPoints(); break;
         case 5: _t->RecordWire(); break;
+        case 6: _t->LoadMesh(); break;
         default: ;
         }
     }
@@ -98,9 +100,9 @@ int Window::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 6)
+        if (_id < 7)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 6;
+        _id -= 7;
     }
     return _id;
 }

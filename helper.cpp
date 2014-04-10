@@ -40,6 +40,7 @@
 
 #include <QtGui>
 #include "helper.h"
+#include <CGAL/Vector_24.h>
 
 struct quad
 {
@@ -534,11 +535,23 @@ inline QVector<QVector<QVector3D> > Patch2Grid(QVector<QVector3D> patch, int nx,
 
 inline Mesh ControlGrid2CubicBSplineMesh(QVector<QVector<QVector3D> > cp, int ni, int nj)
 {
-	int nx = cp.size();
-	int ny = cp.at(0).size();
 	Mesh mMesh; 
 	bool close_x = (cp.front().front() == cp.back().front());
 	bool close_y = (cp.front().front() == cp.front().back());
+	if(close_x )
+		cp.pop_back();
+	
+	if(close_y)
+	{
+		for(int i = 0; i < cp.size(); i++)	{
+			cp[i].pop_back();
+		}
+	}
+	
+	int nx = cp.size();
+	int ny = cp.at(0).size();
+
+
 	int nx_add = close_x? 3:0;
 	int ny_add = close_y? 3:0;
 	for(int i = 0; i < (nx + nx_add - 3); i++)
@@ -553,7 +566,7 @@ inline Mesh ControlGrid2CubicBSplineMesh(QVector<QVector<QVector3D> > cp, int ni
 	return mMesh;
 }
 
-inline Mesh RevolutionBezier(QVector<QPointF> curve, int ns, int nu, int nv)
+inline Mesh RevolutionBezier(QVector<QPointF> curve, int ns, int nu, int nv, int option)
 {
     QVector<QVector3D> c1, cc;
     QVector<QVector<QVector3D> > cp;
@@ -575,8 +588,10 @@ inline Mesh RevolutionBezier(QVector<QPointF> curve, int ns, int nu, int nv)
 		cp.push_back(c1);
         c1.clear();
     }
-    //return Grid2Mesh(ControlGrid2BeizerGrid(cp, nu, nv));
-    return ControlGrid2CubicBSplineMesh(cp, nu, nv);
+	if(0 == option)
+		return Grid2Mesh(ControlGrid2BeizerGrid(cp, nu, nv));
+	else
+	    return ControlGrid2CubicBSplineMesh(cp, nu, nv);
 }
 
 inline Mesh Sweep(QVector<QPointF> generator, QVector<QPointF> trajectory)
@@ -751,53 +766,112 @@ inline Mesh Loop(Mesh inMesh)
 {
     Mesh outMesh;
 	Mesh triMesh;
-	for(int i = 0; i < inMesh.GetNumberFacets(); i++)	{
-		TopoFacet f = inMesh.GetFacet(i);
-		GeomVert vf = FacePoint(f, inMesh);
-		int nv = f.GetNumberVertices();
-		for(int j = 0; j < nv; j++)	{
-			vector<GeomVert> facet;
-			facet.push_back(inMesh.GetGeomVertex(f.GetVertexInd(j)));
-			facet.push_back(inMesh.GetGeomVertex(f.GetVertexInd((j + 1 + nv) % nv)));
-			facet.push_back(vf);
-			triMesh.AddFacet(facet);
-		}
-	}
+	triMesh = inMesh;
+	//for(int i = 0; i < inMesh.GetNumberFacets(); i++)	{
+	//	TopoFacet f = inMesh.GetFacet(i);
+	//	GeomVert vf = FacePoint(f, inMesh);
+	//	int nv = f.GetNumberVertices();
+	//	for(int j = 0; j < nv; j++)	{
+	//		vector<GeomVert> facet;
+	//		facet.push_back(inMesh.GetGeomVertex(f.GetVertexInd(j)));
+	//		facet.push_back(inMesh.GetGeomVertex(f.GetVertexInd((j + 1 + nv) % nv)));
+	//		facet.push_back(vf);
+	//		triMesh.AddFacet(facet);
+	//	}
+	//}
 
 	for(int i = 0; i < triMesh.GetNumberFacets(); i++)	{
 		TopoFacet f = inMesh.GetFacet(i);
-
+		vector<GeomVert> ers;
+		vector<GeomVert> vv;
 		for(int j = 0; j < f.GetNumberEdges(); j++)	{
 			TopoEdge e = inMesh.GetEdge(f.GetIncEdge(j));
+			GeomVert r = inMesh.GetGeomVertex(e.GetVertex(0));
+			GeomVert s = inMesh.GetGeomVertex(e.GetVertex(1));
+			TopoFacet f1 = inMesh.GetFacet(e.GetIncFacet(0));
+			TopoFacet f2 = inMesh.GetFacet(e.GetIncFacet(1));
+			GeomVert p(0,0,0), q(0,0,0);
+			for(int k = 0; k < f1.GetNumberVertices(); k++)	{
+				GeomVert v0 = inMesh.GetGeomVertex(f1.GetVertexInd(k));
+				if(!((v0 == r) || (v0 == s)))
+					p = v0;
+			}
+			for(int k = 0; k < f2.GetNumberVertices(); k++)	{
+				GeomVert v0 = inMesh.GetGeomVertex(f2.GetVertexInd(k));
+				if(!((v0 == r) || (v0 == s)))
+					q = v0;
+			}
+			ers.push_back( (p + r * 3 + s * 3 + q) * (1.0 / 8));
 		}
+		for(int j = 0; j < f.GetNumberVertices(); j++)	{
+			TopoVert v = inMesh.GetVertex(f.GetVertexInd(j));
+			GeomVert vg = inMesh.GetGeomVertex(f.GetVertexInd(j));
+			GeomVert p(0, 0, 0);
+			int n = v.GetNumberIncVertices();
+			for(int k = 0; k < n; k++)	{
+				p += inMesh.GetGeomVertex(v.GetIncVertex(k));
+			}
+			p *= (1.0 / n);
+			float alpha = 0;
+			if(n > 3)
+				alpha = 3.0 / (8 * n);
+			else
+				alpha = 3.0 / 16;
+			vv.push_back(p * alpha + vg * (1 - alpha));
+		}
+		vector<GeomVert> facet0;
+		for(int j = 0; j < f.GetNumberEdges(); j++)	{
+			vector<GeomVert> facet;
+			facet.push_back(vv[j]);
+			facet.push_back(ers[(j + 1) % 3]);
+			facet.push_back(ers[j]);
+			//facet.push_back(vv[(j + 1) % 3]);
+			outMesh.AddFacet(facet);
+
+			facet0.push_back(ers[j]);
+		}
+		outMesh.AddFacet(facet0);
 	}
 
 	return outMesh;
 }
 
 
-void Helper::GenerateDooSabin()
+void Helper::GenerateDooSabin(int n)
 {
-	DooSabin(_inputMesh).WritePLY("data/DooSabin.ply");;
+	Mesh outMesh = _inputMesh;
+	for(int i = 0; i < n; i++)	{
+		outMesh = DooSabin(outMesh);
+	}
+	outMesh.WritePLY("data/DooSabin.ply");;
 }
 
-void Helper::GenerateCatmullClark()
+void Helper::GenerateCatmullClark(int n)
 {
-	CatmullClark(_inputMesh).WritePLY("data/CatmullClark.ply");;
+	Mesh outMesh = _inputMesh;
+	for(int i = 0; i < n; i++)	{
+		outMesh = CatmullClark(outMesh);
+	}
+	outMesh.WritePLY("data/CatmullClark.ply");;
 }
 
-void Helper::GenerateLoop()
+void Helper::GenerateLoop(int n)
 {
-	Loop(_inputMesh).WritePLY("data/Loop.ply");;
+	Mesh outMesh = _inputMesh;
+	for(int i = 0; i < n; i++)	{
+		outMesh = Loop(outMesh);
+	}
+	outMesh.WritePLY("data/Loop.ply");;
 }
 	
-void Helper::GenerateRevolution(int ns, int nu, int nv)
+void Helper::GenerateRevolution(int ns, int nu, int nv, int option)
 {
     QVector<QPointF> curveF = GetCurve();
 	Mesh mMesh;
     bool closed = (_splineType == 3);
     //mMesh = Revolution(curveF, ns, closed);
-    mMesh = RevolutionBezier(curveF, ns, nu, nv);
+
+    mMesh = RevolutionBezier(curveF, ns, nu, nv, option);
     mMesh.WritePLY("data/revolution.ply");
 }
 
@@ -809,9 +883,11 @@ void Helper::GenerateSweep()
     mMesh.WritePLY("data/sweep.ply");
 }
 
-void Helper::LoadMesh()
+void Helper::LoadMesh(const char* filename)
 {
-    _inputMesh.ReadOFF("data/octa.off");//"data/dodec.off");
+	Mesh newMesh;
+	_inputMesh = newMesh;
+    _inputMesh.ReadOFF(filename);//"data/octa.off");//"data/dodec.off");
 }
 
 void Helper::ClearPoints()

@@ -184,7 +184,7 @@ public:
     void WritePLY(char* filename);
 	void WriteASCII(char* filename);
 
-	void ReadOFF(char* filename);
+	void ReadOFF(const char* filename);
 
 private:
 	int       FindGeomVertex(GeomVert v);

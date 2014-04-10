@@ -85,12 +85,12 @@ public:
 	void RecordWire();
     void GenerateSweep();
 
-    void GenerateRevolution(int ns, int nu, int nv);
-    void LoadMesh();
+    void GenerateRevolution(int ns, int nu, int nv, int option);
+    void LoadMesh(const char* filename);
 
-	void GenerateDooSabin();
-	void GenerateCatmullClark();
-	void GenerateLoop();
+	void GenerateDooSabin(int n);
+	void GenerateCatmullClark(int n);
+	void GenerateLoop(int n);
 private:
     QBrush background;
     QBrush circleBrush;

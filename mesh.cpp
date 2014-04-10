@@ -167,7 +167,6 @@ int	Mesh::FindTopoEdge(TopoEdge e) {
 }
 // ------------------------------------------------------------
 
-
 void Mesh::WritePLY(char* filename)
 {
     ofstream ofs;
@@ -192,7 +191,7 @@ void Mesh::WritePLY(char* filename)
     }
 }
 
-void Mesh::ReadOFF(char* filename)
+void Mesh::ReadOFF(const char* filename)
 {
 	ifstream in;
 	in.open(filename);

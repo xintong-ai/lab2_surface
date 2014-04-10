@@ -80,6 +80,7 @@ private slots:
     void SplineTypeSelected();
     void GenerateExtrusionSurface();
 	void GenerateRevolutionSurface();
+	void GenerateRevolutionSurface2();
 	void GenerateSweep();
 	void ClearPoints();
 	void RecordWire();

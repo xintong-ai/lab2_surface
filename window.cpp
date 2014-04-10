@@ -68,7 +68,8 @@ Window::Window()
     textSampleNumY = new QLineEdit(tr("64"));
     radio0->setChecked(true);
     QPushButton *buttonExtrusion = new QPushButton(tr("Extrusion"));
-    QPushButton *buttonRevolution = new QPushButton(tr("Revolution"));
+    QPushButton *buttonRevolution = new QPushButton(tr("Revolution Bezier"));
+    QPushButton *buttonRevolution2 = new QPushButton(tr("Revolution B-spline"));
     QPushButton *buttonClearPoints = new QPushButton(tr("Clear Points"));
     QPushButton *buttonRecordWire = new QPushButton(tr("Record Generator"));
     QPushButton *buttonSweep = new QPushButton(tr("Sweep"));
@@ -91,6 +92,7 @@ Window::Window()
 
     vbox->addWidget(buttonExtrusion);
 	vbox->addWidget(buttonRevolution);
+	vbox->addWidget(buttonRevolution2);
 	vbox->addWidget(buttonClearPoints);
 	vbox->addWidget(buttonRecordWire);
 	vbox->addWidget(buttonSweep);
@@ -122,6 +124,7 @@ Window::Window()
     connect(radio4, SIGNAL(clicked()), this, SLOT(SplineTypeSelected()));
     connect(buttonExtrusion, SIGNAL(clicked()), this, SLOT(GenerateExtrusionSurface()));
     connect(buttonRevolution, SIGNAL(clicked()), this, SLOT(GenerateRevolutionSurface()));
+    connect(buttonRevolution2, SIGNAL(clicked()), this, SLOT(GenerateRevolutionSurface2()));
     connect(buttonClearPoints, SIGNAL(clicked()), this, SLOT(ClearPoints()));
     connect(buttonRecordWire, SIGNAL(clicked()), this, SLOT(RecordWire()));
     connect(buttonSweep, SIGNAL(clicked()), this, SLOT(GenerateSweep()));
@@ -158,9 +161,25 @@ void Window::GenerateExtrusionSurface()
 		QVector3D(textX->text().toFloat(), textY->text().toFloat(), textZ->text().toFloat()));
 }
 
+
 void Window::GenerateRevolutionSurface()
 {
-    helper.GenerateRevolution(textNumSlice->text().toInt(), textSampleNumX->text().toInt(), textSampleNumY->text().toInt());
+	int option = 0;
+	//if(radio0->isChecked())
+	//	option = 0;
+	//else //if(radio1->isChecked())
+	//	option = 1;
+    helper.GenerateRevolution(textNumSlice->text().toInt(), textSampleNumX->text().toInt(), textSampleNumY->text().toInt(), option);
+}
+
+void Window::GenerateRevolutionSurface2()
+{
+	int option = 1;
+	//if(radio0->isChecked())
+	//	option = 0;
+	//else //if(radio1->isChecked())
+	//	option = 1;
+    helper.GenerateRevolution(textNumSlice->text().toInt(), textSampleNumX->text().toInt(), textSampleNumY->text().toInt(), option);
 }
 
 void Window::GenerateSweep()
@@ -170,22 +189,26 @@ void Window::GenerateSweep()
 
 void Window::LoadMesh()
 {
-    helper.LoadMesh();
+	QString	filename = QFileDialog::getOpenFileName(this,
+			 tr("Open OFF File"), "data/", tr("OFF Files (*.off)"));
+	//char* filename = setText(file1Name);
+
+	helper.LoadMesh(filename.toStdString().c_str());
 }
 
 void Window::DooSabin()
 {
-	helper.GenerateDooSabin();
+	helper.GenerateDooSabin(textNumSlice->text().toInt());
 }
 
 void Window::CatmullClark()
 {
-	helper.GenerateCatmullClark();
+	helper.GenerateCatmullClark(textNumSlice->text().toInt());
 }
 
 void Window::Loop()
 {
-	helper.GenerateLoop();
+	helper.GenerateLoop(textNumSlice->text().toInt());
 }
 
 void Window::ClearPoints()
