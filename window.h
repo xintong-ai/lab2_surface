@@ -88,6 +88,8 @@ private slots:
     void DooSabin();
     void CatmullClark();
     void Loop();
+	void NNCrust();
+	void Crust();
 };
 //! [0]
 

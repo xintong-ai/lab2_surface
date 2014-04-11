@@ -40,7 +40,25 @@
 
 #include <QtGui>
 #include "helper.h"
-#include <CGAL/Vector_24.h>
+
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Delaunay_triangulation_2.h>
+#include <CGAL/Triangulation_vertex_base_with_info_2.h>
+//#include <CGAL/CGAL_Ipelet_base.h> 
+
+//typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+//typedef CGAL::Delaunay_triangulation_2<K>  Triangulation;
+//typedef Triangulation::Point          Point;
+//typedef Triangulation::Vertex_circulator Vertex_circulator;
+typedef CGAL::Exact_predicates_inexact_constructions_kernel               Kernel;
+typedef CGAL::Triangulation_vertex_base_with_info_2<bool,Kernel>          Vb;
+typedef CGAL::Triangulation_face_base_2<Kernel>                           Fb;
+typedef CGAL::Triangulation_data_structure_2<Vb,Fb>                       Tds;
+typedef CGAL::Delaunay_triangulation_2<Kernel,Tds>                        Delaunay;
+typedef Delaunay::Vertex_handle                                           Vertex_handle;
+typedef Delaunay::Finite_faces_iterator                                   Face_iterator;
+typedef Delaunay::Point          Point;
+typedef Delaunay::Edge Edge;
 
 struct quad
 {
@@ -75,6 +93,106 @@ unsigned int Combinations(unsigned int n, unsigned int k)
          r /= d;
      }
      return r;
+}
+
+inline QVector<QPoint> NNCrust(QVector<QPoint> pointset)
+{
+	vector<Point> ps;
+	for(int i = 0; i < pointset.size(); i++)	{
+		ps.push_back(Point(pointset[i].x(), pointset[i].y()));
+	}
+	Delaunay T(ps.begin(), ps.end());
+
+	
+	for(Delaunay::Vertex_iterator vit = T.vertices_begin();
+		vit != T.vertices_end(); ++vit)	{
+		auto vc = vit->incident_vertices();
+		Delaunay::Edge_circulator ec = vit->incident_edges();
+		auto vdone(vc);
+		auto edone(ec);
+		do	{
+		} while (++ec != edone); 
+	}
+	return pointset;
+}
+
+inline Vertex_handle GetCcwPoint(Edge e)
+{
+	return e.first->vertex(Delaunay::ccw(e.second));
+}
+
+inline Vertex_handle GetCwPoint(Edge e)
+{
+	return e.first->vertex(Delaunay::cw(e.second));
+}
+
+inline QVector<QPoint> Crust(QVector<QPoint> points)
+{
+	std::list<Point> pt_list;
+
+	for(int i = 0; i < points.size(); i++)	{
+		pt_list.push_back(Point(points[i].x(), points[i].y()));
+	}
+
+	Delaunay triang;
+      
+	for(std::list<Point>::iterator it = pt_list.begin();it!=pt_list.end();++it){
+		Vertex_handle vI_cgal = triang.insert(*it);
+		vI_cgal->info() = true;
+	}
+
+	//add voronoi center to the delauney triangulation
+	pt_list.clear();
+	for (Face_iterator itt=triang.finite_faces_begin();itt!=triang.finite_faces_end();++itt)
+	pt_list.push_back(triang.dual(itt));
+      
+	for (std::list<Point>::iterator it=pt_list.begin();it!=pt_list.end();++it){
+		Vertex_handle vI_cgal = triang.insert(*it);
+		vI_cgal -> info() = false;
+	}
+    
+	vector<Edge> edges;
+	//keep delaunay segments which endpoints are original points
+	for(Delaunay::Finite_edges_iterator it= triang.finite_edges_begin();it!=triang.finite_edges_end();++it){
+		if (it->first->vertex(Delaunay::cw(it->second))->info()==true && 
+				it->first->vertex(Delaunay::ccw(it->second))->info()==true)
+		{
+			edges.push_back(*it);
+		}
+			//		Point p1 = it->first->vertex(Delaunay::cw(it->second))->point();
+			//Point p2 = it->first->vertex(Delaunay::ccw(it->second))->point();
+	}
+	Edge e0 = edges.front();
+	Vertex_handle p_1 = GetCcwPoint(e0);
+	Vertex_handle p_first = p_1;
+	Vertex_handle p0 = GetCwPoint(e0);
+	vector<Vertex_handle> vertices;// = push_back(p_1->point());
+	//vertices.push_back(p_1);
+	vertices.push_back(p0);
+	do{
+		for(int i = 0; i < edges.size(); i++)	{
+			Vertex_handle pa = GetCcwPoint(edges[i]);
+			Vertex_handle pb = GetCwPoint(edges[i]);
+			if(p0 == pa && p_1 != pb)	{
+				vertices.push_back(pb);
+				p_1 = p0;
+				p0 = pb;
+			}
+			else if(p0 == pb && p_1 != pa)	{
+				vertices.push_back(pa);
+				p_1 = p0;
+				p0 = pa;
+			}
+		}
+
+	}
+	while(vertices.back() != p_first);
+	points.clear();
+	for(int i = 0; i < vertices.size(); i++)	{
+		Point p = vertices[i]->point();
+		points.push_back(QPoint(p.x(), p.y()));
+	}
+	return points;
 }
 
 //! [0]
@@ -1038,3 +1156,13 @@ void Helper::FindAndDuplicate(QPoint p)
     }
 }
 
+void Helper::GenNNCrust()
+{
+	ctrlPts = NNCrust(ctrlPts);
+}
+
+
+void Helper::GenCrust()
+{
+	ctrlPts = Crust(ctrlPts);
+}

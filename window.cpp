@@ -77,6 +77,8 @@ Window::Window()
     QPushButton *buttonDooSabin = new QPushButton(tr("Doo Sabin"));
 	QPushButton *buttonCatmullClark = new QPushButton(tr("Catmull-Clark"));
 	QPushButton *buttonLoop = new QPushButton(tr("Loop"));
+	QPushButton *buttonNNCrust = new QPushButton(tr("NNCrust"));
+	QPushButton *buttonCrust = new QPushButton(tr("Crust"));
     QVBoxLayout *vbox = new QVBoxLayout;
     vbox->addWidget(radio0);
     vbox->addWidget(radio1);
@@ -100,6 +102,8 @@ Window::Window()
     vbox->addWidget(buttonDooSabin);
     vbox->addWidget(buttonCatmullClark);
     vbox->addWidget(buttonLoop);
+    vbox->addWidget(buttonNNCrust);
+    vbox->addWidget(buttonCrust);
 
     vbox->addStretch(1);
     groupBox->setLayout(vbox);
@@ -132,6 +136,9 @@ Window::Window()
     connect(buttonDooSabin, SIGNAL(clicked()), this, SLOT(DooSabin()));
     connect(buttonCatmullClark, SIGNAL(clicked()), this, SLOT(CatmullClark()));
     connect(buttonLoop, SIGNAL(clicked()), this, SLOT(Loop()));
+    connect(buttonNNCrust, SIGNAL(clicked()), this, SLOT(NNCrust()));
+    connect(buttonCrust, SIGNAL(clicked()), this, SLOT(Crust()));
+
  //   connect(timer, SIGNAL(timeout()), openGL, SLOT(animate()));
 
 
@@ -209,6 +216,18 @@ void Window::CatmullClark()
 void Window::Loop()
 {
 	helper.GenerateLoop(textNumSlice->text().toInt());
+}
+
+void Window::NNCrust()
+{
+	helper.GenNNCrust();
+    openGL->repaint();
+}
+
+void Window::Crust()
+{
+	helper.GenCrust();
+    openGL->repaint();
 }
 
 void Window::ClearPoints()

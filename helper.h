@@ -91,6 +91,8 @@ public:
 	void GenerateDooSabin(int n);
 	void GenerateCatmullClark(int n);
 	void GenerateLoop(int n);
+	void GenNNCrust();
+	void GenCrust();
 private:
     QBrush background;
     QBrush circleBrush;
