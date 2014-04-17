@@ -44,6 +44,7 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
+#include <qdebug.h>
 //#include <CGAL/CGAL_Ipelet_base.h> 
 
 //typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
@@ -95,27 +96,6 @@ unsigned int Combinations(unsigned int n, unsigned int k)
      return r;
 }
 
-inline QVector<QPoint> NNCrust(QVector<QPoint> pointset)
-{
-	vector<Point> ps;
-	for(int i = 0; i < pointset.size(); i++)	{
-		ps.push_back(Point(pointset[i].x(), pointset[i].y()));
-	}
-	Delaunay T(ps.begin(), ps.end());
-
-	
-	for(Delaunay::Vertex_iterator vit = T.vertices_begin();
-		vit != T.vertices_end(); ++vit)	{
-		auto vc = vit->incident_vertices();
-		Delaunay::Edge_circulator ec = vit->incident_edges();
-		auto vdone(vc);
-		auto edone(ec);
-		do	{
-		} while (++ec != edone); 
-	}
-	return pointset;
-}
-
 inline Vertex_handle GetCcwPoint(Edge e)
 {
 	return e.first->vertex(Delaunay::ccw(e.second));
@@ -124,6 +104,45 @@ inline Vertex_handle GetCcwPoint(Edge e)
 inline Vertex_handle GetCwPoint(Edge e)
 {
 	return e.first->vertex(Delaunay::cw(e.second));
+}
+
+inline vector<Vertex_handle> Edges2Curve(vector<Edge> edges)
+{
+	vector<Vertex_handle> vertices;
+	Edge e0 = edges.front();
+	Vertex_handle p_1 = GetCcwPoint(e0);
+	Vertex_handle p_first = p_1;
+	Vertex_handle p0 = GetCwPoint(e0);
+	vertices.push_back(p0);
+	vector<Point> pts;
+	for(int i = 0 ; i < edges.size(); i++)	{
+		Point pa = GetCcwPoint(edges[i])->point();
+		Point pb = GetCwPoint(edges[i])->point();
+		qDebug()<<pa.x()<<","<<pa.y() <<"\t" <<pb.x()<<","<<pb.y() <<endl;
+		pts.push_back(pa);
+		pts.push_back(pb);
+	}
+	do{
+		for(int i = 1; i < edges.size(); i++)	{
+			Vertex_handle pa = GetCcwPoint(edges[i]);
+			Vertex_handle pb = GetCwPoint(edges[i]);
+			if(p0 == pa && p_1 != pb)	{
+				p0 = pb;
+				vertices.push_back(p0);
+				p_1 = p0;
+				continue;
+			}
+			else if(p0 == pb && p_1 != pa)	{
+				p0 = pa;
+				vertices.push_back(p0);
+				p_1 = p0;
+				continue;
+			}
+		}
+
+	}
+	while(vertices.back() != p_first);
+	return vertices;
 }
 
 inline QVector<QPoint> Crust(QVector<QPoint> points)
@@ -162,31 +181,11 @@ inline QVector<QPoint> Crust(QVector<QPoint> points)
 			//		Point p1 = it->first->vertex(Delaunay::cw(it->second))->point();
 			//Point p2 = it->first->vertex(Delaunay::ccw(it->second))->point();
 	}
-	Edge e0 = edges.front();
-	Vertex_handle p_1 = GetCcwPoint(e0);
-	Vertex_handle p_first = p_1;
-	Vertex_handle p0 = GetCwPoint(e0);
+
 	vector<Vertex_handle> vertices;// = push_back(p_1->point());
 	//vertices.push_back(p_1);
-	vertices.push_back(p0);
-	do{
-		for(int i = 0; i < edges.size(); i++)	{
-			Vertex_handle pa = GetCcwPoint(edges[i]);
-			Vertex_handle pb = GetCwPoint(edges[i]);
-			if(p0 == pa && p_1 != pb)	{
-				vertices.push_back(pb);
-				p_1 = p0;
-				p0 = pb;
-			}
-			else if(p0 == pb && p_1 != pa)	{
-				vertices.push_back(pa);
-				p_1 = p0;
-				p0 = pa;
-			}
-		}
+	vertices = Edges2Curve(edges);
 
-	}
-	while(vertices.back() != p_first);
 	points.clear();
 	for(int i = 0; i < vertices.size(); i++)	{
 		Point p = vertices[i]->point();
@@ -194,6 +193,121 @@ inline QVector<QPoint> Crust(QVector<QPoint> points)
 	}
 	return points;
 }
+
+inline bool EqualEdge(Edge e1, Edge e2)
+{
+	Point p1a = GetCcwPoint(e1)->point();
+	Point p1b = GetCwPoint(e1)->point();
+	Point p2a = GetCcwPoint(e2)->point();
+	Point p2b = GetCwPoint(e2)->point();
+	return (p1a == p2a && p1b == p2b) || (p1a == p2b && p1b == p2a);
+}
+
+inline bool ExistEdge(Edge e, vector<Edge> edges)
+{
+	bool exist = false;
+	for(int i = 0; i < edges.size(); i++)
+		if(EqualEdge(edges[i], e))
+			exist = true;
+	return exist;
+}
+
+inline QVector<QPoint> NNCrust(QVector<QPoint> points)
+{
+	std::list<Point> pt_list;
+
+	for(int i = 0; i < points.size(); i++)	{
+		pt_list.push_back(Point(points[i].x(), points[i].y()));
+	}
+
+	Delaunay triang;
+      
+	for(std::list<Point>::iterator it = pt_list.begin();it!=pt_list.end();++it){
+		triang.insert(*it);
+	}
+
+	//vector<Point> vertices;
+	vector<Edge> edges;
+	for(Delaunay::Finite_vertices_iterator it= triang.finite_vertices_begin();it!=triang.finite_vertices_end();++it){
+		auto ec = it->incident_edges();
+		auto edone(ec);
+		float minLeng = FLT_MAX;
+		Edge minEdge;
+		Vertex_handle p = it->handle();
+		Vertex_handle q;
+		do	{
+			auto v1 = ec->first->vertex(Delaunay::cw(ec->second));
+			auto v2 = ec->first->vertex(Delaunay::ccw(ec->second));
+			float leng = CGAL::squared_distance(v1->point(), v2->point());
+			if(leng < minLeng)	{
+				minLeng = leng;
+				minEdge = *ec;
+				if(v1==p)
+					q = v2;
+				else
+					q = v1;
+			}
+		} while (++ec != edone);
+		if(! ExistEdge(minEdge, edges))
+			edges.push_back(minEdge);
+
+		minLeng = FLT_MAX;
+		ec = it->incident_edges();
+		edone = ec;
+		bool flag = false;
+		do	{
+			if(*ec == minEdge)
+				continue;
+			auto v1 = ec->first->vertex(Delaunay::cw(ec->second));
+			auto v2 = ec->first->vertex(Delaunay::ccw(ec->second));
+			Vertex_handle r;
+			if(v1 == p)
+				r = v2;
+			else
+				r = v1;
+			//CGAL::Angle ang = CGAL::angle(r->point() - p->point(), q->point() - p->point());
+			auto va = r->point() - p->point();
+			auto vb = q->point() - p->point();
+			//auto angle1 = va.direction() ;
+
+			//QVector2D vv1 = ;
+
+			//va = va / std::sqrt( va.squared_length()); 
+			//vb = vb / std::sqrt( vb.squared_length()); 
+//			double ang = std::acos( va.x() * vb.x() +  va.y() * vb.y()); 
+	//		if(abs(ang) < M_PI * 0.5)
+			if((va.x() * vb.x() +  va.y() * vb.y() )> 0)
+				continue;
+			flag = true;
+			float leng = CGAL::squared_distance(r->point(), p->point());
+			if(leng < minLeng)	{
+				minLeng = leng;
+				minEdge = *ec;
+			}
+		} while (++ec != edone);
+		if(flag && (! ExistEdge(minEdge, edges)))
+			edges.push_back(minEdge);
+		
+		//if (it->first->vertex(Delaunay::cw(it->second))->info()==true && 
+		//		it->first->vertex(Delaunay::ccw(it->second))->info()==true)
+		//{
+		//	edges.push_back(*it);
+		//}
+			//		Point p1 = it->first->vertex(Delaunay::cw(it->second))->point();
+			//Point p2 = it->first->vertex(Delaunay::ccw(it->second))->point();
+	}
+	vector<Vertex_handle> vertices;
+	vertices = Edges2Curve(edges);
+
+	points.clear();
+	for(int i = 0; i < vertices.size(); i++)	{
+		Point p = vertices[i]->point();
+		points.push_back(QPoint(p.x(), p.y()));
+	}
+
+	return points;
+}
+
 
 //! [0]
 inline float Bernstein(float u, int i, int n)   {

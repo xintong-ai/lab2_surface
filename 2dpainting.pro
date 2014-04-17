@@ -1,5 +1,6 @@
 QT          += opengl
 
+
 HEADERS     = glwidget.h \
               helper.h \
               window.h \
